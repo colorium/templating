@@ -1,0 +1,22 @@
+{
+  "name": "colorium/templating",
+  "type": "library",
+  "description": "Colorium Templating Component",
+  "homepage": "https://github.com/colorium/templating",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Aymeric Assier",
+      "email": "aymeric.assier@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=5.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Colorium\\Templating\\": "/src/Colorium/Templating/"
+    }
+  }
+}
