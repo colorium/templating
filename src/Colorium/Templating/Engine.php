@@ -25,10 +25,8 @@ class Engine implements Renderer
 	 */
     public function __construct($directory = null, $suffix = '.php')
     {
+		$this->directory = $directory;
 		$this->suffix = $suffix;
-		if($directory) {
-			$this->directory = rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-		}
 
 		$this->helpers['render'] = [$this, 'render'];
     }
@@ -43,7 +41,8 @@ class Engine implements Renderer
 	 */
 	public function make($template, array $sections = [])
 	{
-		$file = $this->directory . trim($template, DIRECTORY_SEPARATOR) . $this->suffix;
+		$directory = rtrim($this->directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+		$file = $directory . trim($template, DIRECTORY_SEPARATOR) . $this->suffix;
 
 		return new Template($file, $sections, $this->helpers, $this);
 	}
