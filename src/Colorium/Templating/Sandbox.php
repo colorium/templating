@@ -2,14 +2,11 @@
 
 namespace Colorium\Templating;
 
-abstract class Sandbox
+abstract class Sandbox implements Compilable
 {
 
     /** @var string */
     private $template;
-
-    /** @var string */
-    private $root;
 
     /** @var string */
     private $layout;
@@ -23,6 +20,9 @@ abstract class Sandbox
     /** @var array */
     private $helpers = [];
 
+    /** @var Renderer */
+    private $engine;
+
     /** @var bool */
     private $rendering = false;
 
@@ -33,11 +33,11 @@ abstract class Sandbox
      * @param string $template
      * @param array $sections
      * @param array $helpers
-     * @param string $root
+     * @param Renderer $engine
      *
      * @throws \Exception
      */
-    public function __construct($template, array $sections = [], array $helpers = [], $root = null)
+    public function __construct($template, array $sections = [], array $helpers = [], Renderer $engine = null)
     {
         if(!file_exists($template)) {
             throw new \Exception('Unknown template "' . $template . '".');
@@ -46,7 +46,7 @@ abstract class Sandbox
         $this->template = $template;
         $this->sections = $sections;
         $this->helpers = $helpers;
-        $this->root = $root;
+        $this->engine = $engine;
 
         $this->helpers['e'] = function($value) {
             return htmlspecialchars($value, ENT_COMPAT, 'UTF-8');
@@ -108,7 +108,7 @@ abstract class Sandbox
      */
     protected function content()
     {
-        return $this->insert('__content__');
+        return $this->insert('__CONTENT__');
     }
 
 
@@ -160,13 +160,19 @@ abstract class Sandbox
         if($this->layout) {
 
             list($file, $data) = $this->layout;
+            $sections = array_merge($this->sections, ['__CONTENT__' => $content]);
 
-            $file = rtrim($this->root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . trim($file, DIRECTORY_SEPARATOR ) . '.php';
-            $vars = array_merge($vars, $data);
-            $sections = array_merge($this->sections, ['__content__' => $content]);
-            
-            $layout = new static($file, $sections, $this->helpers, $this->root);
-            $content = $layout->compile($vars);
+            if($this->engine) {
+                $layout = $this->engine->make($file, $sections);
+            }
+            else {
+                $directory = dirname($this->template);
+                $suffix = '.' . pathinfo($this->template, PATHINFO_EXTENSION);
+                $file = $directory . trim($file, DIRECTORY_SEPARATOR) . $suffix;
+                $layout = new static($file, $sections, $this->helpers);
+            }
+
+            $content = $layout->compile($data);
         }
 
         // end

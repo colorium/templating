@@ -1,17 +1,64 @@
 <?php
-
 namespace Colorium\Templating;
 
-interface Engine
+class Engine implements Renderer
 {
 
-    /**
-     * Generate template content
-     *
-     * @param string $template
-     * @param array $vars
-     * @return string
-     */
-    public function render($template, array $vars = []);
+	/** @var string */
+	public $directory;
+
+	/** @var string */
+	public $suffix = '.php';
+
+	/** @var array */
+	public $vars = [];
+
+	/** @var array */
+    public $helpers = [];
+
+
+	/**
+	 * Create new html engine
+	 *
+	 * @param string $directory
+	 * @param string $suffix
+	 */
+    public function __construct($directory = null, $suffix = '.php')
+    {
+		$this->suffix = $suffix;
+		if($directory) {
+			$this->directory = rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+		}
+
+		$this->helpers['render'] = [$this, 'render'];
+    }
+
+
+	/**
+	 * Generate template
+	 *
+	 * @param string $template
+	 * @param array $sections
+	 * @return Template
+	 */
+	public function make($template, array $sections = [])
+	{
+		$file = $this->directory . trim($template, DIRECTORY_SEPARATOR) . $this->suffix;
+
+		return new Template($file, $sections, $this->helpers, $this);
+	}
+
+
+	/**
+	 * Generate content from template compilation
+	 *
+	 * @param string $template 
+	 * @param array $vars 
+	 * @return string
+	 */
+	public function render($template, array $vars = [])
+	{
+		return $this->make($template)->compile($vars);
+	}
 
 }
