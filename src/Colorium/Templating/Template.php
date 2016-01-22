@@ -2,7 +2,4 @@
 
 namespace Colorium\Templating;
 
-class Template extends Sandbox
-{
-	
-}
+class Template extends Sandbox {}

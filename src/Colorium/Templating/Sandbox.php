@@ -2,55 +2,51 @@
 
 namespace Colorium\Templating;
 
-abstract class Sandbox implements Compilable
+abstract class Sandbox
 {
 
+    /** @var Templater */
+    private $templater;
+
     /** @var string */
-    private $template;
+    private $file;
 
     /** @var string */
     private $layout;
 
     /** @var string */
-    private $section;
+    private $record;
 
     /** @var array */
-    private $sections = [];
+    private $blocks = [];
 
     /** @var array */
     private $helpers = [];
 
-    /** @var Renderer */
-    private $engine;
-
     /** @var bool */
-    private $rendering = false;
+    private $compiling = false;
 
 
     /**
      * Create template
      *
-     * @param string $template
-     * @param array $sections
+     * @param Templater $templater
+     * @param string $file
+     * @param array $blocks
      * @param array $helpers
-     * @param Renderer $engine
      *
      * @throws \Exception
      */
-    public function __construct($template, array $sections = [], array $helpers = [], Renderer $engine = null)
+    public function __construct(Templater $templater, $file, array $blocks = [], array $helpers = [])
     {
-        if(!file_exists($template)) {
-            throw new \Exception('Unknown template "' . $template . '".');
+        if(!file_exists($file)) {
+            throw new \LogicException('Unknown template file "' . $file . '".');
         }
 
-        $this->template = $template;
-        $this->sections = $sections;
+        $this->templater = $templater;
+        $this->file = $file;
+        $this->blocks = $blocks;
         $this->helpers = $helpers;
-        $this->engine = $engine;
-
-        $this->helpers['e'] = function($value) {
-            return htmlspecialchars($value, ENT_COMPAT, 'UTF-8');
-        };
     }
 
 
@@ -65,50 +61,68 @@ abstract class Sandbox implements Compilable
     {
         $this->layout = [$template, $vars];
     }
-    
-    
+
+
     /**
-     * Start recording section
+     * Render block
      *
-     * @param $name
+     * @param string $name
      */
-    protected function section($name)
+    protected function block($name)
     {
-        $this->section = $name;
+        $this->record = [$name, false];
         ob_start();
     }
 
 
     /**
-     * Stop recording section
+     * Rewrite block
+     *
+     * @param string $name
+     */
+    protected function rewrite($name)
+    {
+        $this->record = [$name, true];
+        ob_start();
+    }
+
+
+    /**
+     * Stop recording block
      */
     protected function end()
     {
-        $this->sections[$this->section] = ob_get_clean();
-        $this->section = null;
+        // stop recording block
+        $content = ob_get_clean();
+
+        // read record
+        list($name, $rewrite) = $this->record;
+
+        // rewrite
+        if($rewrite) {
+            $this->blocks += [$name => $content];
+        }
+        // render
+        else {
+            echo isset($this->blocks[$name])
+                ? $this->blocks[$name]
+                : $content;
+        }
+
+        // reset record
+        $this->record = null;
     }
 
 
     /**
-     * Insert section
-     *
-     * @param $section
-     * @return string
-     */
-    protected function insert($section)
-    {
-        return isset($this->sections[$section]) ? $this->sections[$section] : null;
-    }
-
-
-    /**
-     * Insert child content
+     * Insert child content block
      *
      * @return string
      */
     protected function content()
     {
-        return $this->insert('__CONTENT__');
+        $this->block('__CONTENT__');
+        $this->end();
     }
 
 
@@ -136,47 +150,40 @@ abstract class Sandbox implements Compilable
      *
      * @param array $vars
      * @return string
+     *
+     * @throws \Exception
      */
     public function compile(array $vars = [])
     {
-        // start rendering
-        if($this->rendering) {
-            throw new \LogicException('Template is already rendering.');
+        // start compilation
+        if($this->compiling) {
+            throw new \LogicException('Template is already compiling.');
         }
-        $this->rendering = true;
+        $this->compiling = true;
+
+        // extract user vars
+        extract($vars);
+        unset($vars);
 
         // start stream capture
-        extract($vars);
         ob_start();
 
         // display file
-        require $this->template;
+        require $this->file;
 
         // stop stream capture
         $content = ob_get_clean();
         $content .= "\n\n";
 
-        // render layout
+        // compile layout
         if($this->layout) {
-
-            list($file, $data) = $this->layout;
-            $sections = array_merge($this->sections, ['__CONTENT__' => $content]);
-
-            if($this->engine) {
-                $layout = $this->engine->make($file, $sections);
-            }
-            else {
-                $directory = dirname($this->template);
-                $suffix = '.' . pathinfo($this->template, PATHINFO_EXTENSION);
-                $file = $directory . trim($file, DIRECTORY_SEPARATOR) . $suffix;
-                $layout = new static($file, $sections, $this->helpers);
-            }
-
-            $content = $layout->compile($data);
+            list($layout, $vars) = $this->layout;
+            $blocks = array_merge($this->blocks, ['__CONTENT__' => $content]);
+            $content = $this->templater->render($layout, $vars, $blocks);
         }
 
         // end
-        $this->rendering = false;
+        $this->compiling = false;
         return $content;
     }
 

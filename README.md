@@ -13,10 +13,10 @@
 ```
 
 ```php
-use Colorium\Templating\Engine;
+use Colorium\Template\Templater;
 
-$engine = new Engine;
-echo $engine->render('awesome', ['name' => 'you']); // Hello you !
+$templater = new Templater;
+echo $templater->render('awesome', ['name' => 'you']); // Hello you !
 ```
 
 ## Settings
@@ -24,13 +24,13 @@ echo $engine->render('awesome', ['name' => 'you']); // Hello you !
 Setup root directory :
 
 ```php
-$engine->directory = __DIR__ . '/../views/';
+$templater->directory = __DIR__ . '/../views/';
 ```
 
 Setup file extension (default: `.php`) :
 
 ```php
-$engine->suffix = '.phtml';
+$templater->suffix = '.phtml';
 ```
 
 ### Helpers
@@ -38,7 +38,7 @@ $engine->suffix = '.phtml';
 An helper is an inner sandboxed function, only usable in template.
 
 ```php
-$engine->helpers['sayhi'] = function($name)
+$templater->helpers['hi'] = function($name)
 {
     return 'Hi ' . $name . ' !'; 
 };
@@ -49,7 +49,7 @@ $engine->helpers['sayhi'] = function($name)
 <html>
     <head></head>
     <body>
-        <h1><?= self::sayhi($name) ?></h1>
+        <h1><?= self::hi($name) ?></h1>
     </body>
 </html>
 ```
@@ -80,30 +80,50 @@ In the layout file, define where to place the template content :
 </html>
 ```
 
-### Sections
+### Blocks
 
-You can change some layout blocks using sections :
-
+You can define accessible blocks in the layout using `block($name)`:
 ```php
-# awesome.php
-<?php self::layout('mylayout', ['title' => 'Awsome Page']) ?>
-
-<h1>Hello <?= $name ?> !</h1>
-
-<?php self::section('css') ?>
-<link rel='stylesheet' type='text/css' href='/css/awesome.css' />
-<?php self::end() ?>
+# mylayout.php
+<html>
+    <head></head>
+    <body>
+        <nav>
+            <?php self::block('breadcrumb') ?>
+            Homepage
+            <?php self::end() ?>
+        </nav>
+        
+        <?= self::content() ?>
+    </body>
+</html>
 ```
 
+And change it from the template using `rewrite($name)` :
+```php
+# awesome.php
+<?php self::layout('mylayout') ?>
+
+<?php self::rewrite('breadcrumb') ?>
+Homepage > Awesome
+<?php self::end() ?>
+
+<h1>Hello !</h1>
+```
+
+Result :
 ```php
 # mylayout.php
 <html>
     <head>
-        <title><?= $title ?></title>
-        <?= self::insert('css') ?>
+        <title></title>
     </head>
     <body>
-        <?= self::content() ?>
+        <nav>
+            Homepage > Awesome
+        </nav>
+        
+        <h1>Hello !</h1>
     </body>
 </html>
 ```
