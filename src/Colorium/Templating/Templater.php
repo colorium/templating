@@ -48,10 +48,9 @@ class Templater implements Contract\TemplaterInterface
     {
         $directory = rtrim($this->directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $file = $directory . trim($template, DIRECTORY_SEPARATOR) . $this->suffix;
-        $vars += $this->vars;
 
         $sandbox = new Template($this, $file, $blocks, $this->helpers);
-        return $sandbox->compile($vars);
+        return $sandbox->compile();
     }
 
 }
