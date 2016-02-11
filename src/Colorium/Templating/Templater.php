@@ -16,6 +16,9 @@ class Templater implements Contract\TemplaterInterface
     /** @var array */
     public $helpers = [];
 
+    /** @var Templater */
+    protected static $instance;
+
 
     /**
      * Create new engine
@@ -52,6 +55,24 @@ class Templater implements Contract\TemplaterInterface
 
         $sandbox = new Template($this, $file, $blocks, $this->helpers);
         return $sandbox->compile($vars);
+    }
+
+
+    /**
+     * Generate content from static template compilation
+     *
+     * @param string $template
+     * @param array $vars
+     * @param array $blocks
+     * @return string
+     */
+    public static function make($template, array $vars = [], array $blocks = [])
+    {
+        if(!static::$instance) {
+            static::$instance = new static;
+        }
+
+        return static::$instance->render($template, $vars, $blocks);
     }
 
 }
