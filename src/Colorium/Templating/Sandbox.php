@@ -67,11 +67,16 @@ abstract class Sandbox
      * Render block
      *
      * @param string $name
+     * @param bool $record default block
      */
-    protected function block($name)
+    protected function block($name, $record = false)
     {
         $this->record = [$name, false];
         ob_start();
+
+        if(!$record) {
+            $this->end();
+        }
     }
 
 
